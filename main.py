@@ -43,18 +43,12 @@ class BlaseIt:
         self.user_id = me['id']
         # then active bets
         self.bets = [x['gameId'] for x in self.get_active_bets()]
-        # check notifications
-        self.get_and_show_notifications()
-        # then start streaming and betting
-        print("Starting with " + str(self.monies) + " coins")
-        print("Connecting to event stream...")
-        self.connect_to_event_stream()
-        # TODO: handle requests.exceptions.ChunkedEncodingError
 
     def get_and_show_notifications(self):
         notifications = self.get_user_notifications()['notes']
         for n in notifications:
             print(n['message'])
+        self.clear_user_notifications()
 
     def get(self, url):
         r = requests.get('https://www.blaseball.com/' + url, cookies=GLOBAL_COOKIES)
@@ -62,7 +56,8 @@ class BlaseIt:
 
     def post(self, url, payload={}):
         r = requests.post('https://www.blaseball.com/' + url, cookies=GLOBAL_COOKIES, json=payload)
-        return r.json()
+        if len(r.text) > 0:
+            return r.json()
 
     def user_info(self):
         return self.get('api/getUser')
@@ -138,4 +133,11 @@ class BlaseIt:
                 print(self.events[0]['msg'])
 
 if __name__=='__main__':
-    BlaseIt()
+    b = BlaseIt()
+    # check notifications
+    b.get_and_show_notifications()
+    # then start streaming and betting
+    print("Starting with " + str(b.monies) + " coins")
+    print("Connecting to event stream...")
+    b.connect_to_event_stream()
+    # TODO: handle requests.exceptions.ChunkedEncodingError
