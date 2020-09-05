@@ -1,23 +1,34 @@
 #!/usr/bin/env python
 import json
 import requests
+import struct
 from collections import deque
 
-GLOBAL_COOKIES={'connect.sid': 'PUT_YOUR_COOKIE_HERE'}
+GLOBAL_COOKIES={'connect.sid': str(open(".cookie", "r").read().rstrip())}
 BET_AMOUNT=20
 ALWAYS_BET_ON=['Sunbeams', 'Moist Talkers', 'Firefighters']
 
+class Bet:
+
+    def __init__(self, gid, tid, a):
+        self.game_id = gid
+        self.team_id = tid
+        self.amount = a
+
 class Team:
 
-    def __init__(self, new_name, new_id, new_odds):
+    def __init__(self, new_name, new_id, new_odds, emoji_hex, new_score):
         self.name = new_name
         self.id = new_id
         self.odds = new_odds
+        self.emoji = struct.pack('<I', int(emoji_hex, 16)).decode('utf-32le')
+        self.score = new_score
+
 
     @staticmethod
     def from_game(g):
-        away = Team(g['awayTeamNickname'], g['awayTeam'], g['awayOdds'])
-        home = Team(g['homeTeamNickname'], g['homeTeam'], g['homeOdds'])
+        away = Team(g['awayTeamNickname'], g['awayTeam'], g['awayOdds'], g['awayTeamEmoji'], g['awayScore'])
+        home = Team(g['homeTeamNickname'], g['homeTeam'], g['homeOdds'], g['homeTeamEmoji'], g['homeScore'])
         return [away, home]
 
 class WhichTeam:
@@ -119,18 +130,25 @@ class BlaseIt:
                 else:
                     print(d['message'])
 
-    def connect_to_event_stream(self):
+    def event_stream(self):
         r = requests.get('https://www.blaseball.com/events/streamData', cookies=GLOBAL_COOKIES, stream=True)
         for line in r.iter_lines():
             # filter out keep-alive new lines
             if line:
                 decoded_line = line.decode('utf-8')
                 data = json.loads(decoded_line.replace("data: ", ""))
-                upcoming_games = data['value']['games']['tomorrowSchedule']
-                self.bet_on(upcoming_games)
-                # print random message after each iteration for fun
-                self.events.rotate(1)
-                print(self.events[0]['msg'])
+                yield data
+
+    def connect_and_bet(self):
+        for event in event_stream():
+            upcoming_games = event['value']['games']['tomorrowSchedule']
+            self.bet_on(upcoming_games)
+            # print random message after each iteration for fun
+            self.events.rotate(1)
+            print(self.events[0]['msg'])
+
+    def fake_event_stream(self):
+        yield json.loads(open('example_event_stream_row.json', 'r').read())
 
 if __name__=='__main__':
     b = BlaseIt()
@@ -139,5 +157,5 @@ if __name__=='__main__':
     # then start streaming and betting
     print("Starting with " + str(b.monies) + " coins")
     print("Connecting to event stream...")
-    b.connect_to_event_stream()
+    b.connect_and_bet()
     # TODO: handle requests.exceptions.ChunkedEncodingError
