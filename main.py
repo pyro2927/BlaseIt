@@ -140,7 +140,7 @@ class BlaseIt:
                 yield data
 
     def connect_and_bet(self):
-        for event in event_stream():
+        for event in self.event_stream():
             upcoming_games = event['value']['games']['tomorrowSchedule']
             self.bet_on(upcoming_games)
             # print random message after each iteration for fun
