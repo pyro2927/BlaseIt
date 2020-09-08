@@ -140,12 +140,16 @@ class BlaseIt:
                 yield data
 
     def connect_and_bet(self):
-        for event in self.event_stream():
-            upcoming_games = event['value']['games']['tomorrowSchedule']
-            self.bet_on(upcoming_games)
-            # print random message after each iteration for fun
-            self.events.rotate(1)
-            print(self.events[0]['msg'])
+        while True:
+            try:
+                for event in self.event_stream():
+                    upcoming_games = event['value']['games']['tomorrowSchedule']
+                    self.bet_on(upcoming_games)
+                    # print random message after each iteration for fun
+                    self.events.rotate(1)
+                    print(self.events[0]['msg'])
+            except requests.exceptions.ChunkedEncodingError:
+                print("Event stream disconnected, re-opening connection...")
 
     def fake_event_stream(self):
         yield json.loads(open('example_event_stream_row.json', 'r').read())
