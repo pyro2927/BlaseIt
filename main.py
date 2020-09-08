@@ -143,11 +143,14 @@ class BlaseIt:
         while True:
             try:
                 for event in self.event_stream():
-                    upcoming_games = event['value']['games']['tomorrowSchedule']
-                    self.bet_on(upcoming_games)
-                    # print random message after each iteration for fun
-                    self.events.rotate(1)
-                    print(self.events[0]['msg'])
+                    try:
+                        upcoming_games = event['value']['games']['tomorrowSchedule']
+                        self.bet_on(upcoming_games)
+                        # print random message after each iteration for fun
+                        print(self.events[0]['msg'])
+                        self.events.rotate(1)
+                    except KeyError:
+                        print("JSON not as expected, skipping event from stream")
             except requests.exceptions.ChunkedEncodingError:
                 print("Event stream disconnected, re-opening connection...")
 
